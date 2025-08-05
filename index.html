@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampCoord: Camping Trip Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Style for the details/summary accordion */
+        details > summary {
+            list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        /* Simple transition for opening the accordion */
+        details[open] summary ~ * {
+            animation: sweep .5s ease-in-out;
+        }
+        @keyframes sweep {
+            0%    {opacity: 0; transform: translateY(-10px)}
+            100%  {opacity: 1; transform: translateY(0)}
+        }
+        /* Blinking cursor effect for loading state */
+        .blinking-cursor {
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { border-color: transparent }
+            50% { border-color: black; }
+        }
+        .trip-planning-section.hidden {
+            display: none;
+        }
+        .sortable-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sortable-header:hover {
+            color: #4f46e5; /* indigo-600 */
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+    <!-- Main Application Container -->
+    <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight">CampCoord</h1>
+            <p id="header-subtitle" class="mt-2 text-lg text-gray-600">Your collaborative camping trip planner.</p>
+            <div id="loading-indicator" class="mt-4 flex items-center justify-center text-gray-500">
+                <p>Initializing your trip data</p>
+                <span class="w-1 h-5 ml-1 bg-gray-800 blinking-cursor"></span>
+            </div>
+            <p id="user-id-display" class="text-xs text-gray-400 mt-2 font-mono hidden"></p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div id="main-tabs" class="mb-6 border-b border-gray-200">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button data-tab="trips" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">My Trips</button>
+                <button data-tab="setup" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 trip-planning-section hidden">Trip Setup</button>
+                <button data-tab="meals" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 trip-planning-section hidden">Meal Planner</button>
+                <button data-tab="groceries" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 trip-planning-section hidden">Grocery & Costs</button>
+            </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <main>
+            <!-- My Trips Tab -->
+            <div id="trips-tab" class="tab-content space-y-8">
+                 <section class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
+                        <h2 class="text-2xl font-bold">All Trips</h2>
+                        <button id="create-trip-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Create New Trip</button>
+                    </div>
+                    <div id="trips-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Trip cards will be injected here -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Trip Setup Tab -->
+            <div id="setup-tab" class="tab-content hidden space-y-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Attendees Section -->
+                    <section class="bg-white p-6 rounded-xl shadow-sm">
+                        <h2 class="text-2xl font-bold mb-4">Attendees (<span id="attendee-count">0</span>)</h2>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="attendee-name-input" placeholder="Enter name..." class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <button id="add-attendee-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Add</button>
+                        </div>
+                        <ul id="attendees-list" class="space-y-2"></ul>
+                    </section>
+
+                    <!-- Gear List Section -->
+                    <section class="bg-white p-6 rounded-xl shadow-sm">
+                        <h2 class="text-2xl font-bold mb-4">Gear List</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
+                            <input type="text" id="gear-item-input" placeholder="Gear item..." class="sm:col-span-3 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="gear-qty-input" placeholder="Qty" value="1" min="1" class="sm:col-span-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <button id="add-gear-btn" class="w-full mb-4 inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">Add Gear</button>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead id="gear-list-head" class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Packed</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort-by="item">Item <span id="sort-indicator-item"></span></th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort-by="broughtBy">Brought By <span id="sort-indicator-broughtBy"></span></th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gear-list" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Meal Planner Tab -->
+            <div id="meals-tab" class="tab-content hidden space-y-6">
+                 <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                         <h2 class="text-2xl font-bold">Meal Plan</h2>
+                         <button id="add-day-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">Add Day</button>
+                    </div>
+                    <div id="meal-plan-days" class="space-y-4"></div>
+                 </div>
+            </div>
+
+            <!-- Grocery List & Costs Tab -->
+            <div id="groceries-tab" class="tab-content hidden space-y-8">
+                 <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
+                         <h2 class="text-2xl font-bold">Grocery List</h2>
+                         <button id="generate-grocery-list-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">Generate/Update List</button>
+                    </div>
+                    <div id="grocery-list-container" class="space-y-6"></div>
+                    <div class="mt-8">
+                        <h3 class="text-xl font-bold mb-4">Extra Items</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-4">
+                            <input type="text" id="extra-grocery-item-input" placeholder="Add extra item (e.g., sunscreen)" class="sm:col-span-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="extra-grocery-cost-input" placeholder="Cost ($)" min="0" step="0.01" class="sm:col-span-4 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <button id="add-extra-grocery-item-btn" class="w-full inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700">Add</button>
+                    </div>
+                    <ul id="extra-grocery-list" class="space-y-2 mt-4"></ul>
+                 </div>
+                 <div class="bg-white p-6 rounded-xl shadow-sm">
+                     <h2 class="text-2xl font-bold mb-4">Cost Summary</h2>
+                     <div id="cost-summary-container" class="space-y-3">
+                        <!-- Cost summary will be injected here -->
+                     </div>
+                 </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="create-trip-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+            <h3 class="text-2xl font-bold mb-4">Create a New Trip</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="trip-name-input" class="block text-sm font-medium text-gray-700">Trip Name</label>
+                    <input type="text" id="trip-name-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="trip-date-input" class="block text-sm font-medium text-gray-700">Date</label>
+                    <input type="date" id="trip-date-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="trip-type-select" class="block text-sm font-medium text-gray-700">Trip Type</label>
+                    <select id="trip-type-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="one-off">One-Off</option>
+                        <option value="annual">Annual</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button id="cancel-create-trip-btn" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+                    <button id="save-trip-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Save Trip</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="recipe-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="recipe-modal-title" class="text-2xl leading-6 font-bold text-gray-900">Plan Meal</h3>
+                    <button id="close-recipe-modal-btn" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button data-modal-tab="select" class="modal-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">Select Recipe</button>
+                        <button data-modal-tab="create" class="modal-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Create New Recipe</button>
+                    </nav>
+                </div>
+                <div id="select-recipe-tab" class="modal-tab-content py-4">
+                    <h4 class="font-semibold mb-2">Available Recipes</h4>
+                    <div id="recipe-selection-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                </div>
+                <div id="create-recipe-tab" class="modal-tab-content hidden py-4">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="recipe-name" class="block text-sm font-medium text-gray-700">Recipe Name</label>
+                            <input type="text" id="recipe-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label for="recipe-servings" class="block text-sm font-medium text-gray-700">Serves (how many people)</label>
+                            <input type="number" id="recipe-servings" min="1" value="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2">Ingredients</h4>
+                            <div id="ingredients-container" class="space-y-2"></div>
+                            <button id="add-ingredient-btn" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium">+ Add Ingredient</button>
+                        </div>
+                        <div id="recipe-form-buttons" class="flex justify-end gap-2">
+                             <button id="cancel-edit-recipe-btn" class="hidden rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+                             <button id="save-recipe-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">Save Recipe</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Firebase and App Logic -->
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, collection, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- App State and Firebase Config ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", ...{}};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-camp-coord';
+
+        let db, auth, userId;
+        let tripsUnsubscribe = null;
+        let currentTripUnsubscribe = null;
+        let recipesUnsubscribe = null;
+        
+        let localTripsState = {};
+        let localRecipesState = {};
+        let currentTripId = null;
+        let currentTripState = {};
+        let currentMealSlot = { dayId: null, mealType: null };
+        let currentEditingRecipeId = null;
+
+        // --- DOM Elements ---
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const createTripModal = document.getElementById('create-trip-modal');
+        const recipeModal = document.getElementById('recipe-modal');
+        const headerSubtitle = document.getElementById('header-subtitle');
+        const recipeModalTitle = document.getElementById('recipe-modal-title');
+
+        // --- Initialization ---
+        async function initialize() {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    userIdDisplay.textContent = `Session ID: ${userId}`;
+                    userIdDisplay.classList.remove('hidden');
+                    await setupListeners();
+                    loadingIndicator.classList.add('hidden');
+                }
+            });
+
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                loadingIndicator.textContent = "Error: Could not connect to the database.";
+            }
+        }
+
+        async function setupListeners() {
+            // Listener for the user's trips
+            const tripsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/trips`);
+            tripsUnsubscribe = onSnapshot(tripsCollectionRef, (querySnapshot) => {
+                localTripsState = {};
+                querySnapshot.forEach((doc) => {
+                    localTripsState[doc.id] = doc.data();
+                });
+                renderTripsList();
+            }, (error) => console.error("Error listening to trips:", error));
+
+            // Listener for recipes (shared across trips)
+            const recipesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/recipes`);
+            recipesUnsubscribe = onSnapshot(recipesCollectionRef, (querySnapshot) => {
+                localRecipesState = {};
+                querySnapshot.forEach((doc) => {
+                    localRecipesState[doc.id] = doc.data();
+                });
+                if(currentTripId) renderAllForCurrentTrip();
+            }, (error) => console.error("Error listening to recipes:", error));
+        }
+
+        function setupListenerForTrip(tripId) {
+            if (currentTripUnsubscribe) {
+                currentTripUnsubscribe(); // Detach old listener
+            }
+            const tripDocRef = doc(db, `artifacts/${appId}/users/${userId}/trips`, tripId);
+            currentTripUnsubscribe = onSnapshot(tripDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    currentTripState = docSnap.data();
+                    renderAllForCurrentTrip();
+                } else {
+                    // This case might happen if the trip is deleted while being viewed
+                    navigateToTab('trips');
+                }
+            });
+        }
+        
+        function getInitialTripData(name, date, type) {
+            return {
+                tripName: name,
+                tripDate: date,
+                tripType: type,
+                attendees: [],
+                gearList: [],
+                gearSort: { column: 'item', direction: 'asc' },
+                mealPlan: {},
+                manualGroceries: [],
+            };
+        }
+
+        // --- Navigation & View Management ---
+        function navigateToTab(tabId) {
+            tabButtons.forEach(btn => {
+                btn.classList.remove('border-indigo-500', 'text-indigo-600');
+                btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            });
+            const button = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            button.classList.add('border-indigo-500', 'text-indigo-600');
+            button.classList.remove('border-transparent', 'text-gray-500');
+
+            tabContents.forEach(content => content.classList.add('hidden'));
+            document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+
+            const tripPlanningSections = document.querySelectorAll('.trip-planning-section');
+            if (tabId === 'trips') {
+                currentTripId = null;
+                if(currentTripUnsubscribe) currentTripUnsubscribe();
+                tripPlanningSections.forEach(el => el.classList.add('hidden'));
+                headerSubtitle.textContent = 'Your collaborative camping trip planner.';
+            } else {
+                tripPlanningSections.forEach(el => el.classList.remove('hidden'));
+                headerSubtitle.textContent = `Planning: ${currentTripState.tripName}`;
+            }
+        }
+
+        function selectTrip(tripId) {
+            currentTripId = tripId;
+            setupListenerForTrip(tripId);
+            navigateToTab('setup');
+        }
+
+        // --- Rendering Logic ---
+        function renderAllForCurrentTrip() {
+            if (!userId || !currentTripId) return;
+            renderAttendees();
+            renderGearList();
+            renderMealPlan();
+            renderExtraGroceries();
+            renderRecipeSelectionList();
+            renderGeneratedGroceryList();
+            renderCostSummary();
+        }
+
+        function renderTripsList() {
+            const list = document.getElementById('trips-list');
+            list.innerHTML = '';
+            if (Object.keys(localTripsState).length === 0) {
+                list.innerHTML = `<p class="text-center text-gray-500 py-4 col-span-full">No trips found. Create one to get started!</p>`;
+                return;
+            }
+            for (const [id, trip] of Object.entries(localTripsState)) {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-indigo-50 hover:border-indigo-400 transition-all';
+                card.dataset.tripId = id;
+                card.innerHTML = `
+                    <h3 class="font-bold text-lg text-gray-800">${trip.tripName}</h3>
+                    <p class="text-sm text-gray-600">${trip.tripDate}</p>
+                    <span class="mt-2 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${trip.tripType}</span>
+                `;
+                list.appendChild(card);
+            }
+        }
+
+        function renderAttendees() {
+            const list = document.getElementById('attendees-list');
+            const count = document.getElementById('attendee-count');
+            list.innerHTML = '';
+            const attendees = currentTripState.attendees || [];
+            count.textContent = attendees.length;
+            attendees.forEach(attendee => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between bg-gray-50 p-2 rounded-md';
+                li.innerHTML = `
+                    <span class="text-gray-800">${attendee.name}</span>
+                    <button data-id="${attendee.id}" class="remove-attendee-btn text-red-500 hover:text-red-700">&times;</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function renderGearList() {
+            const list = document.getElementById('gear-list');
+            list.innerHTML = '';
+            const gearList = currentTripState.gearList || [];
+            const attendees = currentTripState.attendees || [];
+            const sort = currentTripState.gearSort || { column: 'item', direction: 'asc' };
+
+            // Update sort indicators
+            document.getElementById('sort-indicator-item').textContent = '';
+            document.getElementById('sort-indicator-broughtBy').textContent = '';
+            const indicatorSpan = document.getElementById(`sort-indicator-${sort.column}`);
+            if (indicatorSpan) {
+                indicatorSpan.textContent = sort.direction === 'asc' ? ' ▲' : ' ▼';
+            }
+
+            const sortedGearList = [...gearList].sort((a, b) => {
+                const dir = sort.direction === 'asc' ? 1 : -1;
+                let valA, valB;
+
+                if (sort.column === 'item') {
+                    valA = a.item.toLowerCase();
+                    valB = b.item.toLowerCase();
+                } else if (sort.column === 'broughtBy') {
+                    const findName = (id) => {
+                        if (id === 'unassigned') return 'zzunassigned';
+                        if (id === 'all') return 'zzaall';
+                        const attendee = attendees.find(att => att.id === id);
+                        return attendee ? attendee.name.toLowerCase() : 'zzzunknown';
+                    };
+                    valA = findName(a.broughtById);
+                    valB = findName(b.broughtById);
+                }
+
+                return valA.localeCompare(valB) * dir;
+            });
+
+            if (sortedGearList.length === 0) {
+                list.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 py-4">No gear added yet.</td></tr>`;
+                return;
+            }
+
+            sortedGearList.forEach(gear => {
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-gray-50 ${gear.isPacked ? 'bg-green-50' : ''}`;
+                const attendeeOptions = attendees.map(a => `<option value="${a.id}" ${gear.broughtById === a.id ? 'selected' : ''}>${a.name}</option>`).join('');
+                
+                tr.innerHTML = `
+                    <td class="px-2 py-3 text-center"><input type="checkbox" data-id="${gear.id}" class="gear-packed-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${gear.isPacked ? 'checked' : ''}></td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="font-medium text-gray-900">${gear.item}</div>
+                        <div class="text-sm text-gray-500">Qty: ${gear.qty}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <select data-id="${gear.id}" class="gear-assignment-select block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                             <optgroup label="General">
+                                <option value="unassigned" ${gear.broughtById === 'unassigned' ? 'selected' : ''}>Unassigned</option>
+                                <option value="all" ${gear.broughtById === 'all' ? 'selected' : ''}>All</option>
+                            </optgroup>
+                            <optgroup label="Attendees">
+                                ${attendeeOptions}
+                            </optgroup>
+                        </select>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-right">
+                        <button data-id="${gear.id}" class="remove-gear-btn text-red-500 hover:text-red-700">&times;</button>
+                    </td>
+                `;
+                list.appendChild(tr);
+            });
+        }
+        
+        function renderMealPlan() {
+            const container = document.getElementById('meal-plan-days');
+            container.innerHTML = '';
+            const mealPlan = currentTripState.mealPlan || {};
+            const days = Object.keys(mealPlan).sort((a, b) => parseInt(a.replace('day','')) - parseInt(b.replace('day','')));
+
+            if (days.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-500 py-4">No days planned. Click "Add Day" to start.</p>`;
+                return;
+            }
+
+            days.forEach(dayId => {
+                const dayData = mealPlan[dayId];
+                const dayIndex = parseInt(dayId.replace('day', '')) + 1;
+                const details = document.createElement('details');
+                details.className = 'bg-gray-50 rounded-lg border border-gray-200';
+                details.open = true;
+
+                details.innerHTML = `
+                    <summary class="flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-xl font-semibold">Day ${dayIndex}</h3>
+                        <button data-day-id="${dayId}" class="remove-day-btn text-sm text-red-500 hover:text-red-700">Remove Day</button>
+                    </summary>
+                    <div class="p-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${createMealCard('breakfast', 'Breakfast', dayId, dayData.breakfast)}
+                        ${createMealCard('lunch', 'Lunch', dayId, dayData.lunch)}
+                        ${createMealCard('dinner', 'Dinner', dayId, dayData.dinner)}
+                    </div>
+                `;
+                container.appendChild(details);
+            });
+        }
+
+        function createMealCard(mealType, mealTitle, dayId, recipeId) {
+            const recipe = recipeId ? localRecipesState[recipeId] : null;
+            const recipeName = recipe ? recipe.name : 'Not Planned';
+            const recipeServings = recipe ? `<p class="text-xs text-gray-500">Serves: ${recipe.servings}</p>` : '';
+
+            return `
+                <div class="border rounded-lg p-3 bg-white">
+                    <h4 class="font-bold">${mealTitle}</h4>
+                    <div class="my-2 p-2 bg-gray-100 rounded min-h-[60px]">
+                        <p class="font-medium text-indigo-700">${recipeName}</p>
+                        ${recipeServings}
+                    </div>
+                    <button data-day-id="${dayId}" data-meal-type="${mealType}" class="plan-meal-btn w-full text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                        ${recipeId ? 'Change' : 'Plan Meal'}
+                    </button>
+                    ${recipeId ? `<button data-day-id="${dayId}" data-meal-type="${mealType}" class="unassign-recipe-btn w-full text-sm text-red-500 hover:text-red-700 font-medium mt-1">Clear</button>` : ''}
+                </div>
+            `;
+        }
+
+        function renderRecipeSelectionList() {
+            const list = document.getElementById('recipe-selection-list');
+            list.innerHTML = '';
+            if (Object.keys(localRecipesState).length === 0) {
+                list.innerHTML = `<p class="text-center text-gray-500 py-4">No recipes created yet.</p>`;
+                return;
+            }
+            for (const [id, recipe] of Object.entries(localRecipesState)) {
+                const div = document.createElement('div');
+                div.className = 'p-3 border rounded-md hover:bg-indigo-50 flex justify-between items-center';
+                div.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${recipe.name}</p>
+                        <p class="text-sm text-gray-600">Serves: ${recipe.servings}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button data-id="${id}" class="select-recipe-btn text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-200">Select</button>
+                        <button data-id="${id}" class="edit-recipe-btn text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-200">Edit</button>
+                        <button data-id="${id}" class="delete-recipe-btn text-sm text-red-500 hover:text-red-700">&times;</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            }
+        }
+        
+        function renderExtraGroceries() {
+            const list = document.getElementById('extra-grocery-list');
+            list.innerHTML = '';
+            const items = currentTripState.manualGroceries || [];
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = `flex items-center justify-between bg-gray-50 p-2 rounded-md ${item.isPurchased ? 'bg-green-50' : ''}`;
+                li.innerHTML = `
+                    <input type="checkbox" data-id="${item.id}" class="extra-grocery-purchased-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${item.isPurchased ? 'checked' : ''}>
+                    <span class="text-gray-800 ml-2">${item.item}</span>
+                    <span class="text-gray-600 text-sm ml-auto mr-4">$${(item.cost || 0).toFixed(2)}</span>
+                    <button data-id="${item.id}" class="remove-extra-grocery-btn text-red-500 hover:text-red-700">&times;</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function renderGeneratedGroceryList() {
+            const container = document.getElementById('grocery-list-container');
+            container.innerHTML = '<h3 class="text-xl font-bold mb-4">Generated From Meal Plan</h3>';
+            
+            const attendeesCount = (currentTripState.attendees || []).length;
+            if (attendeesCount === 0) {
+                container.innerHTML += '<p class="text-gray-500">Add attendees to generate a grocery list.</p>';
+                return;
+            }
+
+            const aggregatedIngredients = {};
+            Object.values(currentTripState.mealPlan || {}).forEach(day => {
+                Object.values(day).forEach(recipeId => {
+                    if (recipeId && localRecipesState[recipeId]) {
+                        const recipe = localRecipesState[recipeId];
+                        const mealMultiplier = attendeesCount / recipe.servings;
+                        recipe.ingredients.forEach(ing => {
+                            const totalQtyNeededForMeal = ing.qty * mealMultiplier;
+                            const costPerUnit = (ing.qty > 0) ? ((ing.cost || 0) / ing.qty) : 0;
+                            const totalCostForMeal = costPerUnit * totalQtyNeededForMeal;
+
+                            const key = `${ing.name.toLowerCase()}_${ing.unit.toLowerCase()}`;
+                            if (aggregatedIngredients[key]) {
+                                aggregatedIngredients[key].qty += totalQtyNeededForMeal;
+                                aggregatedIngredients[key].cost += totalCostForMeal;
+                            } else {
+                                aggregatedIngredients[key] = { name: ing.name, unit: ing.unit, qty: totalQtyNeededForMeal, cost: totalCostForMeal };
+                            }
+                        });
+                    }
+                });
+            });
+
+            if (Object.keys(aggregatedIngredients).length === 0) {
+                container.innerHTML += '<p class="text-gray-500">No meals planned yet. Go to the Meal Planner to add recipes.</p>';
+                return;
+            }
+
+            const ul = document.createElement('ul');
+            ul.className = 'space-y-2';
+            Object.values(aggregatedIngredients).forEach(ing => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-3 bg-gray-50 p-2 rounded-md';
+                const displayQty = Math.ceil(ing.qty * 100) / 100;
+                li.innerHTML = `
+                    <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="font-medium text-gray-900 flex-grow">${ing.name}</span>
+                    <span class="text-gray-600">${displayQty} ${ing.unit}</span>
+                    <span class="text-gray-800 font-semibold w-20 text-right">$${(ing.cost || 0).toFixed(2)}</span>
+                `;
+                ul.appendChild(li);
+            });
+            container.appendChild(ul);
+        }
+
+        function renderCostSummary() {
+            const container = document.getElementById('cost-summary-container');
+            const attendeesCount = (currentTripState.attendees || []).length;
+            let generatedGroceryCost = 0;
+
+            if (attendeesCount > 0) {
+                Object.values(currentTripState.mealPlan || {}).forEach(day => {
+                    Object.values(day).forEach(recipeId => {
+                        if (recipeId && localRecipesState[recipeId]) {
+                            const recipe = localRecipesState[recipeId];
+                            const mealMultiplier = attendeesCount / recipe.servings;
+                            recipe.ingredients.forEach(ing => {
+                                const costPerUnit = (ing.qty > 0) ? ((ing.cost || 0) / ing.qty) : 0;
+                                const totalCostForMeal = costPerUnit * (ing.qty * mealMultiplier);
+                                generatedGroceryCost += totalCostForMeal;
+                            });
+                        }
+                    });
+                });
+            }
+
+            const extraGroceryCost = (currentTripState.manualGroceries || []).reduce((sum, item) => sum + (item.cost || 0), 0);
+            const totalCost = generatedGroceryCost + extraGroceryCost;
+
+            container.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">Generated Meal Plan Cost:</span>
+                    <span class="font-semibold text-lg">$${generatedGroceryCost.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">Total Extra Items Cost:</span>
+                    <span class="font-semibold text-lg">$${extraGroceryCost.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between items-center border-t pt-3 mt-3">
+                    <span class="font-bold text-xl">Total Trip Cost:</span>
+                    <span class="font-bold text-xl text-indigo-600">$${totalCost.toFixed(2)}</span>
+                </div>
+            `;
+        }
+
+        // --- Database Update Functions ---
+        async function updateCurrentTrip(data) {
+            if (!userId || !currentTripId) return;
+            const tripDocRef = doc(db, `artifacts/${appId}/users/${userId}/trips`, currentTripId);
+            try {
+                await updateDoc(tripDocRef, data);
+            } catch (error) {
+                console.error("Failed to update trip:", error);
+            }
+        }
+
+        async function saveRecipe(recipeData) {
+            if (!userId) return;
+            const recipesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/recipes`);
+            try {
+                const newDocRef = await addDoc(recipesCollectionRef, recipeData);
+                return newDocRef.id;
+            } catch (error) {
+                console.error("Failed to save recipe:", error);
+                return null;
+            }
+        }
+        
+        async function updateRecipe(recipeId, recipeData) {
+            if (!userId || !recipeId) return;
+            const recipeDocRef = doc(db, `artifacts/${appId}/users/${userId}/recipes`, recipeId);
+            try {
+                await updateDoc(recipeDocRef, recipeData);
+            } catch (error) {
+                console.error("Failed to update recipe:", error);
+            }
+        }
+
+        async function deleteRecipe(recipeId) {
+            if (!userId) return;
+            // Unassign this recipe from the current trip's meal plan
+            const newMealPlan = JSON.parse(JSON.stringify(currentTripState.mealPlan || {}));
+            let changed = false;
+            Object.keys(newMealPlan).forEach(dayId => {
+                Object.keys(newMealPlan[dayId]).forEach(mealType => {
+                    if (newMealPlan[dayId][mealType] === recipeId) {
+                        newMealPlan[dayId][mealType] = null;
+                        changed = true;
+                    }
+                });
+            });
+
+            if(changed) {
+                await updateCurrentTrip({ mealPlan: newMealPlan });
+            }
+
+            const recipeDocRef = doc(db, `artifacts/${appId}/users/${userId}/recipes`, recipeId);
+            try {
+                await deleteDoc(recipeDocRef);
+            } catch(error) {
+                console.error("Failed to delete recipe:", error);
+            }
+        }
+
+
+        // --- Event Listeners ---
+        tabButtons.forEach(button => button.addEventListener('click', () => navigateToTab(button.dataset.tab)));
+        document.getElementById('trips-list').addEventListener('click', (e) => {
+            const card = e.target.closest('[data-trip-id]');
+            if (card) selectTrip(card.dataset.tripId);
+        });
+
+        // Trip Creation Modal
+        document.getElementById('create-trip-btn').addEventListener('click', () => createTripModal.classList.remove('hidden'));
+        document.getElementById('cancel-create-trip-btn').addEventListener('click', () => createTripModal.classList.add('hidden'));
+        document.getElementById('save-trip-btn').addEventListener('click', async () => {
+            const name = document.getElementById('trip-name-input').value.trim();
+            const date = document.getElementById('trip-date-input').value;
+            const type = document.getElementById('trip-type-select').value;
+            if (name && date) {
+                const newTripData = getInitialTripData(name, date, type);
+                const tripsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/trips`);
+                await addDoc(tripsCollectionRef, newTripData);
+                createTripModal.classList.add('hidden');
+                document.getElementById('trip-name-input').value = '';
+                document.getElementById('trip-date-input').value = '';
+            }
+        });
+
+        // Add Attendee
+        document.getElementById('add-attendee-btn').addEventListener('click', () => {
+            const input = document.getElementById('attendee-name-input');
+            const name = input.value.trim();
+            if (name) {
+                const newAttendee = { id: crypto.randomUUID(), name };
+                updateCurrentTrip({ attendees: [...(currentTripState.attendees || []), newAttendee] });
+                input.value = '';
+            }
+        });
+
+        // Remove Attendee
+        document.getElementById('attendees-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-attendee-btn')) {
+                const idToRemove = e.target.dataset.id;
+                const newAttendees = (currentTripState.attendees || []).filter(a => a.id !== idToRemove);
+                const newGearList = (currentTripState.gearList || []).map(g => g.broughtById === idToRemove ? { ...g, broughtById: 'unassigned' } : g);
+                updateCurrentTrip({ attendees: newAttendees, gearList: newGearList });
+            }
+        });
+
+        // Add Gear
+        document.getElementById('add-gear-btn').addEventListener('click', () => {
+            const itemInput = document.getElementById('gear-item-input');
+            const qtyInput = document.getElementById('gear-qty-input');
+            const item = itemInput.value.trim();
+            const qty = parseInt(qtyInput.value) || 1;
+            if (item) {
+                const newGear = { id: crypto.randomUUID(), item, qty, broughtById: 'unassigned', isPacked: false };
+                updateCurrentTrip({ gearList: [...(currentTripState.gearList || []), newGear] });
+                itemInput.value = '';
+                qtyInput.value = '1';
+            }
+        });
+        
+        // Gear Sort Listener
+        document.getElementById('gear-list-head').addEventListener('click', (e) => {
+            const header = e.target.closest('[data-sort-by]');
+            if (!header) return;
+            
+            const sortBy = header.dataset.sortBy;
+            const currentSort = currentTripState.gearSort || { column: 'item', direction: 'asc' };
+            let newDirection = 'asc';
+
+            if (currentSort.column === sortBy) {
+                newDirection = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            }
+            
+            updateCurrentTrip({ gearSort: { column: sortBy, direction: newDirection } });
+        });
+
+        // Gear List Interactions (Remove, Assign, Check Packed)
+        document.getElementById('gear-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-gear-btn')) {
+                const idToRemove = e.target.dataset.id;
+                const newGearList = (currentTripState.gearList || []).filter(g => g.id !== idToRemove);
+                updateCurrentTrip({ gearList: newGearList });
+            }
+        });
+        document.getElementById('gear-list').addEventListener('change', (e) => {
+             if (e.target.classList.contains('gear-assignment-select') || e.target.classList.contains('gear-packed-checkbox')) {
+                const idToUpdate = e.target.dataset.id;
+                const newGearList = (currentTripState.gearList || []).map(g => {
+                    if (g.id === idToUpdate) {
+                        const updatedGear = {...g};
+                        if(e.target.classList.contains('gear-assignment-select')) updatedGear.broughtById = e.target.value;
+                        if(e.target.classList.contains('gear-packed-checkbox')) updatedGear.isPacked = e.target.checked;
+                        return updatedGear;
+                    }
+                    return g;
+                });
+                updateCurrentTrip({ gearList: newGearList });
+            }
+        });
+        
+        // Add/Remove Day
+        document.getElementById('add-day-btn').addEventListener('click', () => {
+            const mealPlan = currentTripState.mealPlan || {};
+            const dayCount = Object.keys(mealPlan).length;
+            const newDayId = `day${dayCount}`;
+            const newMealPlan = { ...mealPlan, [newDayId]: { breakfast: null, lunch: null, dinner: null } };
+            updateCurrentTrip({ mealPlan: newMealPlan });
+        });
+        document.getElementById('meal-plan-days').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-day-btn')) {
+                const dayIdToRemove = e.target.dataset.dayId;
+                const newMealPlan = { ...currentTripState.mealPlan };
+                delete newMealPlan[dayIdToRemove];
+                updateCurrentTrip({ mealPlan: newMealPlan });
+            }
+        });
+
+        // --- Recipe Modal Logic ---
+        function resetAndPrepareRecipeForm(mode = 'create') {
+            currentEditingRecipeId = null;
+            document.getElementById('recipe-name').value = '';
+            document.getElementById('recipe-servings').value = '4';
+            document.getElementById('ingredients-container').innerHTML = '';
+            addIngredientRow();
+
+            const saveBtn = document.getElementById('save-recipe-btn');
+            const cancelBtn = document.getElementById('cancel-edit-recipe-btn');
+            
+            if (mode === 'create') {
+                recipeModalTitle.textContent = 'Create New Recipe';
+                saveBtn.textContent = 'Save Recipe';
+                cancelBtn.classList.add('hidden');
+            } else { // edit mode
+                recipeModalTitle.textContent = 'Edit Recipe';
+                saveBtn.textContent = 'Update Recipe';
+                cancelBtn.classList.remove('hidden');
+            }
+        }
+
+        function openRecipeModal(dayId, mealType) {
+            currentMealSlot = { dayId, mealType };
+            resetAndPrepareRecipeForm('create');
+            recipeModal.classList.remove('hidden');
+            document.querySelector('[data-modal-tab="select"]').click();
+        }
+
+        function openRecipeModalForEdit(recipeId) {
+            const recipe = localRecipesState[recipeId];
+            if (!recipe) return;
+
+            resetAndPrepareRecipeForm('edit');
+            currentEditingRecipeId = recipeId;
+            
+            document.getElementById('recipe-name').value = recipe.name;
+            document.getElementById('recipe-servings').value = recipe.servings;
+            
+            const ingredientsContainer = document.getElementById('ingredients-container');
+            ingredientsContainer.innerHTML = ''; // Clear before populating
+            recipe.ingredients.forEach(ing => addIngredientRow(ing));
+            
+            recipeModal.classList.remove('hidden');
+            document.querySelector('[data-modal-tab="create"]').click();
+        }
+
+        function closeRecipeModal() {
+            recipeModal.classList.add('hidden');
+            currentEditingRecipeId = null;
+        }
+
+        document.getElementById('meal-plan-days').addEventListener('click', (e) => {
+            if (e.target.classList.contains('plan-meal-btn')) openRecipeModal(e.target.dataset.dayId, e.target.dataset.mealType);
+            if (e.target.classList.contains('unassign-recipe-btn')) {
+                 const { dayId, mealType } = e.target.dataset;
+                 const newMealPlan = { ...currentTripState.mealPlan };
+                 newMealPlan[dayId][mealType] = null;
+                 updateCurrentTrip({ mealPlan: newMealPlan });
+            }
+        });
+        document.getElementById('close-recipe-modal-btn').addEventListener('click', closeRecipeModal);
+        document.getElementById('cancel-edit-recipe-btn').addEventListener('click', () => {
+            document.querySelector('[data-modal-tab="select"]').click();
+            currentEditingRecipeId = null;
+        });
+
+        document.querySelectorAll('.modal-tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                if(button.dataset.modalTab === 'create' && !currentEditingRecipeId) {
+                    resetAndPrepareRecipeForm('create');
+                }
+                document.querySelectorAll('.modal-tab-btn').forEach(btn => btn.classList.remove('border-indigo-500', 'text-indigo-600'));
+                button.classList.add('border-indigo-500', 'text-indigo-600');
+                document.querySelectorAll('.modal-tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`${button.dataset.modalTab}-recipe-tab`).classList.remove('hidden');
+            });
+        });
+        document.getElementById('add-ingredient-btn').addEventListener('click', () => addIngredientRow());
+        function addIngredientRow(ingredient = {}) {
+            const container = document.getElementById('ingredients-container');
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-12 gap-2 ingredient-row';
+            div.innerHTML = `<input type="text" placeholder="Item" class="col-span-4 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.name || ''}"><input type="number" placeholder="Qty" class="col-span-2 rounded-md border-gray-300 shadow-sm text-sm" min="0" step="any" value="${ingredient.qty || ''}"><input type="text" placeholder="Unit" class="col-span-2 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.unit || ''}"><input type="number" placeholder="Cost ($)" min="0" step="0.01" class="col-span-3 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.cost || ''}"><button class="remove-ingredient-btn text-red-500 hover:text-red-700 col-span-1">&times;</button>`;
+            container.appendChild(div);
+        }
+        document.getElementById('ingredients-container').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-ingredient-btn')) e.target.closest('.ingredient-row').remove();
+        });
+        document.getElementById('save-recipe-btn').addEventListener('click', async () => {
+            const name = document.getElementById('recipe-name').value.trim();
+            const servings = parseInt(document.getElementById('recipe-servings').value);
+            if (!name || !servings) return;
+            const ingredients = [];
+            document.querySelectorAll('.ingredient-row').forEach(row => {
+                const itemName = row.children[0].value.trim();
+                const qty = parseFloat(row.children[1].value);
+                const unit = row.children[2].value.trim();
+                const cost = parseFloat(row.children[3].value) || 0;
+                if (itemName && qty && unit) ingredients.push({ name: itemName, qty, unit, cost });
+            });
+            if (ingredients.length === 0) return;
+
+            const recipeData = { name, servings, ingredients };
+
+            if (currentEditingRecipeId) {
+                // Update existing recipe
+                await updateRecipe(currentEditingRecipeId, recipeData);
+            } else {
+                // Create new recipe
+                const newRecipeId = await saveRecipe(recipeData);
+                if (newRecipeId && currentMealSlot.dayId) {
+                    const { dayId, mealType } = currentMealSlot;
+                    const newMealPlan = { ...currentTripState.mealPlan };
+                    newMealPlan[dayId][mealType] = newRecipeId;
+                    await updateCurrentTrip({ mealPlan: newMealPlan });
+                }
+            }
+            closeRecipeModal();
+        });
+        document.getElementById('recipe-selection-list').addEventListener('click', async (e) => {
+            if (e.target.classList.contains('select-recipe-btn')) {
+                const recipeId = e.target.dataset.id;
+                const { dayId, mealType } = currentMealSlot;
+                const newMealPlan = { ...currentTripState.mealPlan };
+                newMealPlan[dayId][mealType] = recipeId;
+                await updateCurrentTrip({ mealPlan: newMealPlan });
+                closeRecipeModal();
+            }
+            if (e.target.classList.contains('delete-recipe-btn')) {
+                await deleteRecipe(e.target.dataset.id);
+            }
+            if (e.target.classList.contains('edit-recipe-btn')) {
+                openRecipeModalForEdit(e.target.dataset.id);
+            }
+        });
+
+        // --- Grocery List & Costs Logic ---
+        document.getElementById('generate-grocery-list-btn').addEventListener('click', renderGeneratedGroceryList);
+        document.getElementById('add-extra-grocery-item-btn').addEventListener('click', () => {
+            const input = document.getElementById('extra-grocery-item-input');
+            const costInput = document.getElementById('extra-grocery-cost-input');
+            const item = input.value.trim();
+            const cost = parseFloat(costInput.value) || 0;
+            if (item) {
+                const newItem = { id: crypto.randomUUID(), item, cost, isPurchased: false };
+                updateCurrentTrip({ manualGroceries: [...(currentTripState.manualGroceries || []), newItem] });
+                input.value = '';
+                costInput.value = '';
+            }
+        });
+        document.getElementById('extra-grocery-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-extra-grocery-btn')) {
+                const idToRemove = e.target.dataset.id;
+                const newItems = (currentTripState.manualGroceries || []).filter(i => i.id !== idToRemove);
+                updateCurrentTrip({ manualGroceries: newItems });
+            }
+        });
+        document.getElementById('extra-grocery-list').addEventListener('change', (e) => {
+            if(e.target.classList.contains('extra-grocery-purchased-checkbox')) {
+                const idToUpdate = e.target.dataset.id;
+                const newItems = (currentTripState.manualGroceries || []).map(i => i.id === idToUpdate ? {...i, isPurchased: e.target.checked} : i);
+                updateCurrentTrip({ manualGroceries: newItems });
+            }
+        });
+
+        // --- Start the app ---
+        initialize();
+
+    </script>
+</body>
+</html>
