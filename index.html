@@ -59,6 +59,64 @@
         .sortable-header:hover {
             color: #4f46e5; /* indigo-600 */
         }
+        
+        /* Print Styles */
+        @media print {
+            body.is-printing > *:not(.printable-section) {
+                display: none;
+            }
+            body.is-printing .printable-section {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                padding: 1rem;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .printable-section, .printable-section * {
+                box-shadow: none !important;
+                border: none !important;
+                background-color: #fff !important;
+                color: #000 !important;
+            }
+            .printable-section table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .printable-section th, .printable-section td {
+                border-bottom: 1px solid #ddd !important;
+                padding: 8px;
+            }
+            .printable-section select {
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+                padding: 0;
+            }
+            .printable-section input[type="checkbox"] {
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                border: 1px solid #000 !important;
+                vertical-align: middle;
+            }
+            .printable-section input[type="checkbox"]:checked::before {
+                content: '✔';
+                display: block;
+                text-align: center;
+                line-height: 14px;
+            }
+            .print-header {
+                display: block;
+                text-align: center;
+                margin-bottom: 1.5rem;
+                border-bottom: 2px solid #000 !important;
+                padding-bottom: 1rem;
+            }
+        }
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -67,7 +125,7 @@
     <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         
         <!-- Header -->
-        <header class="mb-8 text-center">
+        <header class="mb-8 text-center no-print">
             <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight">CampCoord</h1>
             <p id="header-subtitle" class="mt-2 text-lg text-gray-600">Your collaborative camping trip planner.</p>
             <div id="loading-indicator" class="mt-4 flex items-center justify-center text-gray-500">
@@ -78,7 +136,7 @@
         </header>
 
         <!-- Tab Navigation -->
-        <div id="main-tabs" class="mb-6 border-b border-gray-200">
+        <div id="main-tabs" class="mb-6 border-b border-gray-200 no-print">
             <nav class="-mb-px flex space-x-6" aria-label="Tabs">
                 <button data-tab="trips" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">My Trips</button>
                 <button data-tab="setup" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 trip-planning-section hidden">Trip Setup</button>
@@ -94,7 +152,7 @@
                  <section class="bg-white p-6 rounded-xl shadow-sm">
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
                         <h2 class="text-2xl font-bold">All Trips</h2>
-                        <button id="create-trip-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Create New Trip</button>
+                        <button id="create-trip-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 no-print">Create New Trip</button>
                     </div>
                     <div id="trips-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <!-- Trip cards will be injected here -->
@@ -108,7 +166,7 @@
                     <!-- Attendees Section -->
                     <section class="bg-white p-6 rounded-xl shadow-sm">
                         <h2 class="text-2xl font-bold mb-4">Attendees (<span id="attendee-count">0</span>)</h2>
-                        <div class="flex gap-2 mb-4">
+                        <div class="flex gap-2 mb-4 no-print">
                             <input type="text" id="attendee-name-input" placeholder="Enter name..." class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <button id="add-attendee-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Add</button>
                         </div>
@@ -116,13 +174,16 @@
                     </section>
 
                     <!-- Gear List Section -->
-                    <section class="bg-white p-6 rounded-xl shadow-sm">
-                        <h2 class="text-2xl font-bold mb-4">Gear List</h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
+                    <section id="gear-list-section" class="bg-white p-6 rounded-xl shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-bold">Gear List</h2>
+                            <button id="print-gear-btn" class="no-print inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Print</button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4 no-print">
                             <input type="text" id="gear-item-input" placeholder="Gear item..." class="sm:col-span-3 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <input type="number" id="gear-qty-input" placeholder="Qty" value="1" min="1" class="sm:col-span-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
-                        <button id="add-gear-btn" class="w-full mb-4 inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">Add Gear</button>
+                        <button id="add-gear-btn" class="w-full mb-4 inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 no-print">Add Gear</button>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead id="gear-list-head" class="bg-gray-50">
@@ -130,7 +191,7 @@
                                         <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Packed</th>
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort-by="item">Item <span id="sort-indicator-item"></span></th>
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort-by="broughtBy">Brought By <span id="sort-indicator-broughtBy"></span></th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider no-print"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="gear-list" class="bg-white divide-y divide-gray-200"></tbody>
@@ -142,24 +203,30 @@
 
             <!-- Meal Planner Tab -->
             <div id="meals-tab" class="tab-content hidden space-y-6">
-                 <div class="bg-white p-6 rounded-xl shadow-sm">
+                 <section id="meal-plan-section" class="bg-white p-6 rounded-xl shadow-sm">
                     <div class="flex justify-between items-center mb-4">
                          <h2 class="text-2xl font-bold">Meal Plan</h2>
-                         <button id="add-day-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">Add Day</button>
+                         <div>
+                            <button id="print-meal-plan-btn" class="no-print inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 mr-2">Print</button>
+                            <button id="add-day-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 no-print">Add Day</button>
+                         </div>
                     </div>
                     <div id="meal-plan-days" class="space-y-4"></div>
-                 </div>
+                 </section>
             </div>
 
             <!-- Grocery List & Costs Tab -->
             <div id="groceries-tab" class="tab-content hidden space-y-8">
-                 <div class="bg-white p-6 rounded-xl shadow-sm">
+                 <section id="grocery-list-section" class="bg-white p-6 rounded-xl shadow-sm">
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
                          <h2 class="text-2xl font-bold">Grocery List</h2>
-                         <button id="generate-grocery-list-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">Generate/Update List</button>
+                         <div>
+                            <button id="print-grocery-list-btn" class="no-print inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 mr-2">Print</button>
+                            <button id="generate-grocery-list-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 no-print">Generate/Update List</button>
+                         </div>
                     </div>
                     <div id="grocery-list-container" class="space-y-6"></div>
-                    <div class="mt-8">
+                    <div class="mt-8 no-print">
                         <h3 class="text-xl font-bold mb-4">Extra Items</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-4">
                             <input type="text" id="extra-grocery-item-input" placeholder="Add extra item (e.g., sunscreen)" class="sm:col-span-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
@@ -168,19 +235,26 @@
                         <button id="add-extra-grocery-item-btn" class="w-full inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700">Add</button>
                     </div>
                     <ul id="extra-grocery-list" class="space-y-2 mt-4"></ul>
-                 </div>
-                 <div class="bg-white p-6 rounded-xl shadow-sm">
+                 </section>
+                 <section class="bg-white p-6 rounded-xl shadow-sm no-print">
                      <h2 class="text-2xl font-bold mb-4">Cost Summary</h2>
                      <div id="cost-summary-container" class="space-y-3">
                         <!-- Cost summary will be injected here -->
                      </div>
-                 </div>
+                 </section>
             </div>
         </main>
     </div>
+    
+    <!-- Print Header (hidden by default) -->
+    <div id="print-header" class="print-header hidden">
+        <h1 id="print-trip-name"></h1>
+        <p id="print-trip-date"></p>
+    </div>
+
 
     <!-- Modals -->
-    <div id="create-trip-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div id="create-trip-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 no-print">
         <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
             <h3 class="text-2xl font-bold mb-4">Create a New Trip</h3>
             <div class="space-y-4">
@@ -207,7 +281,7 @@
         </div>
     </div>
 
-    <div id="recipe-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div id="recipe-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 no-print">
         <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
             <div class="mt-3">
                 <div class="flex justify-between items-center mb-4">
@@ -258,8 +332,17 @@
         import { getFirestore, doc, setDoc, onSnapshot, updateDoc, collection, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- App State and Firebase Config ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", ...{}};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-camp-coord';
+        const firebaseConfig = {
+            apiKey: "AIzaSyDG2qNtDDTuIWcC7WWf-nQkMIf55G3cDf0",
+            authDomain: "camping-and-menu-app.firebaseapp.com",
+            projectId: "camping-and-menu-app",
+            storageBucket: "camping-and-menu-app.appspot.com",
+            messagingSenderId: "516926637317",
+            appId: "1:516926637317:web:d7b5fd86d2eeb7fd61a36c",
+            measurementId: "G-QJ2G130EPG"
+        };
+        // Use the projectId from your config for path consistency
+        const appId = firebaseConfig.projectId;
 
         let db, auth, userId;
         let tripsUnsubscribe = null;
@@ -436,7 +519,7 @@
                 li.className = 'flex items-center justify-between bg-gray-50 p-2 rounded-md';
                 li.innerHTML = `
                     <span class="text-gray-800">${attendee.name}</span>
-                    <button data-id="${attendee.id}" class="remove-attendee-btn text-red-500 hover:text-red-700">&times;</button>
+                    <button data-id="${attendee.id}" class="remove-attendee-btn text-red-500 hover:text-red-700 no-print">&times;</button>
                 `;
                 list.appendChild(li);
             });
@@ -495,7 +578,7 @@
                         <div class="text-sm text-gray-500">Qty: ${gear.qty}</div>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
-                        <select data-id="${gear.id}" class="gear-assignment-select block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                        <select data-id="${gear.id}" class="gear-assignment-select block w-full rounded-md border-gray-300 shadow-sm text-sm no-print">
                              <optgroup label="General">
                                 <option value="unassigned" ${gear.broughtById === 'unassigned' ? 'selected' : ''}>Unassigned</option>
                                 <option value="all" ${gear.broughtById === 'all' ? 'selected' : ''}>All</option>
@@ -504,11 +587,16 @@
                                 ${attendeeOptions}
                             </optgroup>
                         </select>
+                        <span class="print-only"></span>
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-right">
+                    <td class="px-4 py-3 whitespace-nowrap text-right no-print">
                         <button data-id="${gear.id}" class="remove-gear-btn text-red-500 hover:text-red-700">&times;</button>
                     </td>
                 `;
+                // For printing, show the selected name as text instead of a dropdown
+                const broughtByName = attendees.find(a => a.id === gear.broughtById)?.name || gear.broughtById;
+                tr.querySelector('.print-only').textContent = broughtByName;
+
                 list.appendChild(tr);
             });
         }
@@ -534,7 +622,7 @@
                 details.innerHTML = `
                     <summary class="flex justify-between items-center p-4 cursor-pointer">
                         <h3 class="text-xl font-semibold">Day ${dayIndex}</h3>
-                        <button data-day-id="${dayId}" class="remove-day-btn text-sm text-red-500 hover:text-red-700">Remove Day</button>
+                        <button data-day-id="${dayId}" class="remove-day-btn text-sm text-red-500 hover:text-red-700 no-print">Remove Day</button>
                     </summary>
                     <div class="p-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
                         ${createMealCard('breakfast', 'Breakfast', dayId, dayData.breakfast)}
@@ -558,10 +646,12 @@
                         <p class="font-medium text-indigo-700">${recipeName}</p>
                         ${recipeServings}
                     </div>
-                    <button data-day-id="${dayId}" data-meal-type="${mealType}" class="plan-meal-btn w-full text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                        ${recipeId ? 'Change' : 'Plan Meal'}
-                    </button>
-                    ${recipeId ? `<button data-day-id="${dayId}" data-meal-type="${mealType}" class="unassign-recipe-btn w-full text-sm text-red-500 hover:text-red-700 font-medium mt-1">Clear</button>` : ''}
+                    <div class="no-print">
+                        <button data-day-id="${dayId}" data-meal-type="${mealType}" class="plan-meal-btn w-full text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                            ${recipeId ? 'Change' : 'Plan Meal'}
+                        </button>
+                        ${recipeId ? `<button data-day-id="${dayId}" data-meal-type="${mealType}" class="unassign-recipe-btn w-full text-sm text-red-500 hover:text-red-700 font-medium mt-1">Clear</button>` : ''}
+                    </div>
                 </div>
             `;
         }
@@ -602,7 +692,7 @@
                     <input type="checkbox" data-id="${item.id}" class="extra-grocery-purchased-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${item.isPurchased ? 'checked' : ''}>
                     <span class="text-gray-800 ml-2">${item.item}</span>
                     <span class="text-gray-600 text-sm ml-auto mr-4">$${(item.cost || 0).toFixed(2)}</span>
-                    <button data-id="${item.id}" class="remove-extra-grocery-btn text-red-500 hover:text-red-700">&times;</button>
+                    <button data-id="${item.id}" class="remove-extra-grocery-btn text-red-500 hover:text-red-700 no-print">&times;</button>
                 `;
                 list.appendChild(li);
             });
@@ -962,7 +1052,7 @@
             const container = document.getElementById('ingredients-container');
             const div = document.createElement('div');
             div.className = 'grid grid-cols-12 gap-2 ingredient-row';
-            div.innerHTML = `<input type="text" placeholder="Item" class="col-span-4 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.name || ''}"><input type="number" placeholder="Qty" class="col-span-2 rounded-md border-gray-300 shadow-sm text-sm" min="0" step="any" value="${ingredient.qty || ''}"><input type="text" placeholder="Unit" class="col-span-2 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.unit || ''}"><input type="number" placeholder="Cost ($)" min="0" step="0.01" class="col-span-3 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.cost || ''}"><button class="remove-ingredient-btn text-red-500 hover:text-red-700 col-span-1">&times;</button>`;
+            div.innerHTML = `<input type="text" placeholder="Item" class="col-span-4 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.name || ''}"><input type="number" placeholder="Qty" class="col-span-2 rounded-md border-gray-300 shadow-sm text-sm" min="0" step="any" value="${ingredient.qty || ''}"><input type="text" placeholder="Unit" class="col-span-2 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.unit || ''}"><input type="number" placeholder="Cost ($)" min="0" step="0.01" class="col-span-3 rounded-md border-gray-300 shadow-sm text-sm" value="${ingredient.cost || ''}"><button class="remove-ingredient-btn text-red-500 hover:text-red-700 col-span-1 no-print">&times;</button>`;
             container.appendChild(div);
         }
         document.getElementById('ingredients-container').addEventListener('click', (e) => {
@@ -1044,6 +1134,35 @@
                 updateCurrentTrip({ manualGroceries: newItems });
             }
         });
+
+        // --- Print Logic ---
+        function handlePrint(sectionId) {
+            const printableSection = document.getElementById(sectionId);
+            const printHeader = document.getElementById('print-header');
+            
+            // Populate header
+            document.getElementById('print-trip-name').textContent = currentTripState.tripName;
+            document.getElementById('print-trip-date').textContent = currentTripState.tripDate;
+
+            // Prepare for printing
+            document.body.classList.add('is-printing');
+            printableSection.classList.add('printable-section');
+            printHeader.classList.add('printable-section');
+
+            window.print();
+        }
+
+        window.onafterprint = () => {
+            document.body.classList.remove('is-printing');
+            document.querySelectorAll('.printable-section').forEach(el => {
+                el.classList.remove('printable-section');
+            });
+        };
+
+        document.getElementById('print-gear-btn').addEventListener('click', () => handlePrint('gear-list-section'));
+        document.getElementById('print-meal-plan-btn').addEventListener('click', () => handlePrint('meal-plan-section'));
+        document.getElementById('print-grocery-list-btn').addEventListener('click', () => handlePrint('grocery-list-section'));
+
 
         // --- Start the app ---
         initialize();
